@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Scan History | CyberOptimus{% endblock %}
+{% block page_title %}Scan History{% endblock %}
+{% block page_subtitle %}Review and analyze previous website security assessments.{% endblock %}
+
+{% block content %}
+<div class="card" style="margin-bottom: 2rem;">
+    <form method="GET" action="{{ url_for('main.scan_history') }}" style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 1rem; align-items: end;">
+        <div class="form-group" style="margin: 0;">
+            <label for="query">Search Website</label>
+            <input type="text" id="query" name="query" placeholder="e.g. google.com" value="{{ query }}">
+        </div>
+        <div class="form-group" style="margin: 0;">
+            <label for="grade">Filter by Grade</label>
+            <select id="grade" name="grade" style="width: 100%; padding: 0.75rem; border-radius: 0.5rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff;">
+                <option value="">All Grades</option>
+                <option value="A" {% if grade == 'A' %}selected{% endif %}>Grade A</option>
+                <option value="B" {% if grade == 'B' %}selected{% endif %}>Grade B</option>
+                <option value="C" {% if grade == 'C' %}selected{% endif %}>Grade C</option>
+                <option value="D" {% if grade == 'D' %}selected{% endif %}>Grade D</option>
+                <option value="F" {% if grade == 'F' %}selected{% endif %}>Grade F</option>
+            </select>
+        </div>
+        <div class="form-group" style="margin: 0;">
+            <label for="date">Filter by Date</label>
+            <input type="date" id="date" name="date" value="{{ date_filter }}" style="width: 100%; padding: 0.75rem; border-radius: 0.5rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff;">
+        </div>
+        <button type="submit" class="btn" style="padding: 0.75rem 1.5rem;">Filter</button>
+    </form>
+</div>
+
+<div class="card">
+    {% if scans %}
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Website</th>
+                    <th>Scan Date & Time</th>
+                    <th>Grade</th>
+                    <th>Risk Score</th>
+                    <th>Threat Level</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for scan in scans %}
+                <tr>
+                    <td style="font-weight: 500;">{{ scan.target }}</td>
+                    <td style="color: var(--text-secondary);">{{ scan.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    <td>
+                        <span class="badge {% if scan.grade in ['A', 'B'] %}success{% elif scan.grade == 'C' %}warning{% else %}danger{% endif %}">
+                            Grade {{ scan.grade }}
+                        </span>
+                    </td>
+                    <td>{{ scan.risk_score }} / 100</td>
+                    <td>
+                        <span class="badge" style="background: {% if scan.threat_level == 'Low' %}rgba(16,185,129,0.2){% elif scan.threat_level == 'Medium' %}rgba(245,158,11,0.2){% elif scan.threat_level == 'High' %}rgba(239,68,68,0.2){% else %}rgba(220,38,38,0.4){% endif %}; color: #fff;">
+                            {{ scan.threat_level }}
+                        </span>
+                    </td>
+                    <td>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <a href="{{ url_for('scanner.website_scanner', scan_id=scan.id) }}" class="btn btn-secondary" style="padding: 0.25rem 0.75rem; font-size: 0.85rem;">View Report</a>
+                            <a href="{{ url_for('scanner.download_website_report', scan_id=scan.id) }}" class="btn btn-secondary" style="padding: 0.25rem 0.75rem; font-size: 0.85rem; background: rgba(255,255,255,0.05);">PDF</a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div style="text-align: center; padding: 3rem; color: var(--text-secondary);">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 1rem; opacity: 0.5;">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="8" y1="12" x2="16" y2="12"></line>
+            </svg>
+            <p>No matching scans found in history.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

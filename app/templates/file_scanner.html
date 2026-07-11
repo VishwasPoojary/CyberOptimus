@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}File Analyzer | CyberOptimus{% endblock %}
+{% block page_title %}File Analyzer{% endblock %}
+{% block page_subtitle %}Extract metadata, hashes, and identify suspicious files.{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 600px; margin-bottom: 2rem;">
+    <form method="POST" action="{{ url_for('scanner.file_scanner') }}" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="file">Upload File</label>
+            <input type="file" id="file" name="file" required style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 0.5rem; color: var(--text-primary); width: 100%;">
+        </div>
+        {% if error %}
+            <div style="color: var(--danger); margin-bottom: 1rem; font-size: 0.9rem;">{{ error }}</div>
+        {% endif %}
+        <button type="submit" class="btn">Analyze File</button>
+    </form>
+</div>
+
+{% if result %}
+    {% if result.status == 'success' %}
+        <div class="card result-card {% if result.is_suspicious %}high-risk{% else %}low-risk{% endif %}">
+            <h2>File Analysis: {{ result.filename }}</h2>
+            
+            {% if result.is_suspicious %}
+                <div style="background: rgba(239, 68, 68, 0.1); border-left: 4px solid var(--danger); padding: 1rem; margin: 1.5rem 0;">
+                    <strong style="color: var(--danger);">Suspicious File Detected</strong>
+                    <ul style="margin-left: 1.5rem; margin-top: 0.5rem; color: var(--text-secondary);">
+                        {% for reason in result.reasons %}
+                            <li>{{ reason }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% else %}
+                <div class="badge success mt-4 mb-4" style="display: inline-block;">File appears clean based on heuristics.</div>
+            {% endif %}
+
+            <table class="data-table">
+                <tr>
+                    <th style="width: 200px;">Size</th>
+                    <td>{{ result.size_bytes }} bytes</td>
+                </tr>
+                <tr>
+                    <th>MIME Type</th>
+                    <td>{{ result.mime_type }}</td>
+                </tr>
+                <tr>
+                    <th>Description</th>
+                    <td>{{ result.description }}</td>
+                </tr>
+            </table>
+
+            <h3 class="mt-4 mb-2">Cryptographic Hashes</h3>
+            <div style="background: rgba(0,0,0,0.2); padding: 1.5rem; border-radius: 0.5rem; font-family: monospace; font-size: 0.9rem; word-break: break-all;">
+                <div style="margin-bottom: 1rem;">
+                    <span style="color: var(--text-secondary); display: inline-block; width: 60px;">MD5:</span> {{ result.md5 }}
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <span style="color: var(--text-secondary); display: inline-block; width: 60px;">SHA1:</span> {{ result.sha1 }}
+                </div>
+                <div>
+                    <span style="color: var(--text-secondary); display: inline-block; width: 60px;">SHA256:</span> <span style="color: var(--accent);">{{ result.sha256 }}</span>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+{% endif %}
+{% endblock %}

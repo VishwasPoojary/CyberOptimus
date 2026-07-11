@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | CyberOptimus{% endblock %}
+{% block page_title %}Security Dashboard{% endblock %}
+{% block page_subtitle %}Real-time cyber risk monitoring center.{% endblock %}
+
+{% block content %}
+
+<div class="grid-4">
+    <div class="card stat-card">
+        <h3>Total Scans</h3>
+        <p class="value">{{ stats.total_scans }}</p>
+    </div>
+    
+    <div class="card stat-card">
+        <h3>Threats Found</h3>
+        <p class="value" style="color: var(--danger);">{{ stats.threats_found }}</p>
+    </div>
+    
+    <div class="card stat-card">
+        <h3>Secure Sites</h3>
+        <p class="value" style="color: var(--success);">{{ stats.secure_sites }}</p>
+    </div>
+    
+    <div class="card stat-card">
+        <h3>Risk Score</h3>
+        <p class="value" style="color: var(--warning);">{{ stats.risk_score }}</p>
+    </div>
+</div>
+
+<div class="grid-2">
+    <div class="card">
+        <h2 class="mb-4">Quick Actions</h2>
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+            <a href="{{ url_for('scanner.website_scanner') }}" class="btn btn-secondary" style="justify-content: flex-start;">🔍 Scan Website</a>
+            <a href="{{ url_for('scanner.phishing_detector') }}" class="btn btn-secondary" style="justify-content: flex-start;">🎣 Detect Phishing</a>
+            <a href="{{ url_for('scanner.password_checker') }}" class="btn btn-secondary" style="justify-content: flex-start;">🔑 Check Password</a>
+            <a href="{{ url_for('scanner.file_scanner') }}" class="btn btn-secondary" style="justify-content: flex-start;">📁 Analyze File</a>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h2 class="mb-4">Recent Activity</h2>
+        {% if recent_scans %}
+            <table class="data-table" style="font-size: 0.9rem;">
+                <tr>
+                    <th>Type</th>
+                    <th>Target</th>
+                    <th>Time</th>
+                 </tr>
+                {% for scan in recent_scans %}
+                <tr>
+                    <td><span class="badge" style="background: rgba(255,255,255,0.1)">{{ scan.scan_type | capitalize }}</span></td>
+                    <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><a href="{{ url_for('scanner.website_scanner', scan_id=scan.id) if scan.scan_type == 'website' else '#' }}" style="color: inherit; text-decoration: none;">{{ scan.target }}</a></td>
+                    <td style="color: var(--text-secondary);">{{ scan.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        {% else %}
+            <div class="text-center" style="color: var(--text-secondary); padding: 2rem;">
+                No scans performed yet.
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="grid-2" style="margin-top: 2rem;">
+    <div class="card">
+        <h3 style="margin-bottom: 1.5rem;">Scans Over Time (Last 7 Days)</h3>
+        <canvas id="scansTimeChart" style="max-height: 250px;"></canvas>
+    </div>
+    <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+            <h3 style="margin-bottom: 1.5rem;">Threat Distribution</h3>
+            <div style="height: 180px; position: relative;">
+                <canvas id="threatDistributionChart"></canvas>
+            </div>
+        </div>
+        <div style="text-align: center; margin-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1rem;">
+            <span style="font-size: 0.9rem; color: var(--text-secondary);">Average Security Score:</span>
+            <strong style="font-size: 1.5rem; color: var(--accent); margin-left: 0.5rem;">{{ analytics.avg_security_score }} / 100</strong>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const scansCtx = document.getElementById('scansTimeChart').getContext('2d');
+    new Chart(scansCtx, {
+        type: 'line',
+        data: {
+            labels: {{ analytics.scans_over_time_labels | tojson }},
+            datasets: [{
+                label: 'Scans',
+                data: {{ analytics.scans_over_time_data | tojson }},
+                borderColor: '#6366f1',
+                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                tension: 0.4,
+                fill: true,
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                    ticks: { color: '#94a3b8', stepSize: 1 }
+                },
+                x: {
+                    grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                    ticks: { color: '#94a3b8' }
+                }
+            }
+        }
+    });
+
+    const threatCtx = document.getElementById('threatDistributionChart').getContext('2d');
+    new Chart(threatCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Low', 'Medium', 'High', 'Critical'],
+            datasets: [{
+                data: [
+                    {{ analytics.threat_distribution.Low }},
+                    {{ analytics.threat_distribution.Medium }},
+                    {{ analytics.threat_distribution.High }},
+                    {{ analytics.threat_distribution.Critical }}
+                ],
+                backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#dc2626'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: { color: '#e2e8f0', boxWidth: 12 }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

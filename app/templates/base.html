@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}CyberOptimus{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<div class="layout">
+    {% block sidebar %}
+    <aside class="sidebar glass">
+        <div class="brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="brand-icon"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            <h2>CyberOptimus</h2>
+        </div>
+        <nav class="nav-menu">
+            <a href="{{ url_for('main.dashboard') }}" class="nav-item {% if request.endpoint == 'main.dashboard' %}active{% endif %}">
+                Dashboard
+            </a>
+            <a href="{{ url_for('main.scan_history') }}" class="nav-item {% if request.endpoint == 'main.scan_history' %}active{% endif %}">
+                Scan History
+            </a>
+            <div class="nav-section">TOOLS</div>
+            <a href="{{ url_for('scanner.website_scanner') }}" class="nav-item {% if request.endpoint == 'scanner.website_scanner' %}active{% endif %}">
+                Website Scanner
+            </a>
+            <a href="{{ url_for('scanner.password_checker') }}" class="nav-item {% if request.endpoint == 'scanner.password_checker' %}active{% endif %}">
+                Password Checker
+            </a>
+            <a href="{{ url_for('scanner.phishing_detector') }}" class="nav-item {% if request.endpoint == 'scanner.phishing_detector' %}active{% endif %}">
+                Phishing Detector
+            </a>
+            <a href="{{ url_for('scanner.file_scanner') }}" class="nav-item {% if request.endpoint == 'scanner.file_scanner' %}active{% endif %}">
+                File Analyzer
+            </a>
+        </nav>
+    </aside>
+    {% endblock %}
+
+    <main class="main-content">
+        <header class="topbar">
+            <div class="page-title">
+                <h1>{% block page_title %}Dashboard{% endblock %}</h1>
+                <p class="subtitle">{% block page_subtitle %}{% endblock %}</p>
+            </div>
+            <div class="user-profile glass">
+                <div class="avatar">V</div>
+                <span>Vishwas</span>
+            </div>
+        </header>
+
+        <div class="content-wrapper">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+</div>
+
+</body>
+</html>

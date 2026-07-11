@@ -1,0 +1,748 @@
+{% extends "base.html" %}
+
+{% block title %}Website Scanner | CyberOptimus{% endblock %}
+{% block page_title %}Website Scanner{% endblock %}
+{% block page_subtitle %}Enterprise-grade reconnaissance and security assessment.{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 600px; margin-bottom: 2rem;">
+    <form method="POST" action="{{ url_for('scanner.website_scanner') }}" id="scanner-form">
+        <div class="form-group">
+            <label for="url">Target URL</label>
+            <input type="url" id="url" name="url" placeholder="https://example.com" required>
+        </div>
+        <button type="submit" class="btn" id="scan-btn">Start Reconnaissance</button>
+    </form>
+</div>
+
+<div id="scan-progress" style="display: none; max-width: 600px; margin-bottom: 2rem;" class="card">
+    <h3 style="margin-bottom: 1rem;">Scanner Workflow in Progress</h3>
+    <ul id="progress-steps" style="list-style: none; padding: 0; line-height: 2;">
+        <li id="step1">⏳ Resolving target domain...</li>
+        <li id="step2" style="opacity: 0.4;">⏳ Interrogating server headers...</li>
+        <li id="step3" style="opacity: 0.4;">⏳ Validating SSL/TLS certificates...</li>
+        <li id="step4" style="opacity: 0.4;">⏳ Computing risk score...</li>
+    </ul>
+</div>
+
+{% if result %}
+    {% if result.status == 'success' %}
+        <style>
+        /* Tooltip styles */
+        .tooltip-container {
+            position: relative;
+            cursor: help;
+        }
+        .tooltip-text {
+            visibility: hidden;
+            width: 250px;
+            background-color: #1e293b;
+            color: #cbd5e1;
+            text-align: left;
+            border-radius: 6px;
+            padding: 0.75rem;
+            position: absolute;
+            z-index: 10;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -125px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            font-size: 0.8rem;
+            line-height: 1.4;
+            font-weight: normal;
+        }
+        .tooltip-container:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Accordion details/summary styles */
+        details.soc-card {
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 0.75rem;
+            margin-bottom: 1rem;
+            overflow: hidden;
+            transition: border-color 0.3s ease;
+        }
+        details.soc-card:hover {
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+        summary.soc-summary {
+            padding: 1.25rem 1.5rem;
+            font-weight: 600;
+            font-size: 1.05rem;
+            color: #fff;
+            cursor: pointer;
+            list-style: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        }
+        summary.soc-summary::-webkit-details-marker {
+            display: none;
+        }
+        summary.soc-summary::after {
+            content: "▼";
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            transition: transform 0.3s ease;
+        }
+        details[open] summary.soc-summary::after {
+            transform: rotate(180deg);
+        }
+        .soc-content {
+            padding: 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(15, 23, 42, 0.2);
+        }
+
+        /* Metric cards */
+        .metric-card {
+            background: rgba(30, 41, 59, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            flex: 1;
+            min-width: 160px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+        .metric-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+        </style>
+
+        <div class="card result-card" style="border: 1px solid rgba(255, 255, 255, 0.08); background: rgba(15, 23, 42, 0.3);">
+            
+            <!-- Section 8: Threat Banner -->
+            {% set crit_count = result.severity_summary.Critical %}
+            {% set high_count = result.severity_summary.High %}
+            {% if crit_count > 0 %}
+                <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 0.75rem; padding: 1.25rem; margin-bottom: 2rem; display: flex; align-items: center; gap: 1rem; box-shadow: 0 0 15px rgba(239, 68, 68, 0.1);">
+                    <div style="font-size: 2.2rem; line-height: 1;">🚨</div>
+                    <div>
+                        <h4 style="margin: 0; color: #fca5a5; font-size: 1.1rem; font-weight: 700;">Critical Security Warning</h4>
+                        <p style="margin: 0.25rem 0 0 0; color: #fca5a5; font-size: 0.9rem; opacity: 0.9;">One or more critical vulnerabilities were detected. Immediate remediation is highly recommended to protect your systems.</p>
+                    </div>
+                </div>
+            {% elif high_count > 0 %}
+                <div style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 0.75rem; padding: 1.25rem; margin-bottom: 2rem; display: flex; align-items: center; gap: 1rem;">
+                    <div style="font-size: 2.2rem; line-height: 1;">⚠</div>
+                    <div>
+                        <h4 style="margin: 0; color: #fcd34d; font-size: 1.1rem; font-weight: 700;">Security Improvements Recommended</h4>
+                        <p style="margin: 0.25rem 0 0 0; color: #fcd34d; font-size: 0.9rem; opacity: 0.9;">High-severity issues were detected. Remediation is advised to align with enterprise security baselines.</p>
+                    </div>
+                </div>
+            {% else %}
+                <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 0.75rem; padding: 1.25rem; margin-bottom: 2rem; display: flex; align-items: center; gap: 1rem;">
+                    <div style="font-size: 2.2rem; line-height: 1;">✅</div>
+                    <div>
+                        <h4 style="margin: 0; color: #6ee7b7; font-size: 1.1rem; font-weight: 700;">Website appears well secured</h4>
+                        <p style="margin: 0.25rem 0 0 0; color: #6ee7b7; font-size: 0.9rem; opacity: 0.9;">No critical or high severity security findings were detected. The website demonstrates a strong baseline posture.</p>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Section 1: Executive Summary -->
+            <div style="background: rgba(30, 41, 59, 0.4); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 1rem; padding: 1.75rem; margin-bottom: 2rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 1.5rem; margin-bottom: 1.5rem;">
+                    <div>
+                        <span style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--accent); letter-spacing: 1px;">Security reconnaissance report</span>
+                        <h2 style="margin: 0.25rem 0 0.5rem 0; font-size: 1.8rem; color: #fff;">{{ result.domain }}</h2>
+                        <div style="color: var(--text-secondary); font-size: 0.9rem; font-family: monospace;">Target URL: {{ result.url }}</div>
+                        <div style="margin-top: 1rem; display: flex; gap: 1rem; align-items: center; font-size: 0.85rem; color: var(--text-secondary);">
+                            <div><strong>Scan Time:</strong> {{ result.response_time_ms }} ms</div>
+                            <div>•</div>
+                            <div><strong>Date:</strong> {{ result.scan_date or 'N/A' }}</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 1.5rem; align-items: center; background: rgba(15, 23, 42, 0.4); padding: 1.25rem 1.5rem; border-radius: 0.75rem; border: 1px solid rgba(255,255,255,0.05);">
+                        <div style="text-align: center;">
+                            <div style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 0.25rem;">Grade</div>
+                            <div style="font-size: 3rem; font-weight: 800; line-height: 1; color: {% if result.grade in ['A', 'B'] %}#10b981{% elif result.grade == 'C' %}#f59e0b{% else %}#ef4444{% endif %};">{{ result.grade }}</div>
+                        </div>
+                        <div style="height: 40px; width: 1px; background: rgba(255,255,255,0.1);"></div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 0.25rem;">Score</div>
+                            <div style="font-size: 2.2rem; font-weight: 700; color: #fff; line-height: 1;">{{ result.risk_score }}<span style="font-size: 0.9rem; font-weight: normal; color: var(--text-secondary);">/100</span></div>
+                        </div>
+                        <div style="height: 40px; width: 1px; background: rgba(255,255,255,0.1);"></div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 0.25rem;">Threat Level</div>
+                            <span class="badge {% if result.threat_level == 'Low' %}success{% elif result.threat_level == 'Medium' %}warning{% else %}danger{% endif %}" style="font-size: 0.8rem; font-weight: 600;">{{ result.threat_level }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                    <p style="margin: 0; line-height: 1.5; color: #cbd5e1; font-size: 0.9rem; max-width: 70%;">{{ result.score_explanation }}</p>
+                    {% if scan_id %}
+                        <a href="{{ url_for('scanner.download_website_report', scan_id=scan_id) }}" class="btn btn-secondary" style="padding: 0.6rem 1.2rem; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; border-radius: 0.5rem;">
+                            <span>📄</span> Download PDF Report
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Four Metric Cards -->
+            <div style="display: flex; gap: 1rem; margin-bottom: 2.5rem; flex-wrap: wrap;">
+                {% for key, name, icon in [('dns', 'DNS Health', '🌐'), ('ssl', 'SSL/TLS Security', '🛡'), ('headers', 'HTTP Headers', '⚙'), ('performance', 'Performance', '⚡')] %}
+                    {% set cat = result.categories[key] %}
+                    <div class="metric-card">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+                            <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">{{ name }}</span>
+                            <span style="font-size: 1.5rem; line-height: 1;">{{ icon }}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                            <div>
+                                <div style="font-size: 1.3rem; font-weight: bold; color: #fff;">
+                                    {% if cat.score == 'N/A' %}N/A{% else %}{{ cat.score }}<span style="font-size: 0.8rem; font-weight: normal; color: var(--text-secondary);">/100</span>{% endif %}
+                                </div>
+                                <div style="font-size: 0.75rem; color: {% if cat.status == 'Passed' %}#10b981{% elif cat.status == 'Warning' %}#f59e0b{% elif cat.status == 'Failed' %}#ef4444{% else %}#94a3b8{% endif %}; font-weight: 600; margin-top: 0.25rem;">
+                                    {{ cat.status }}
+                                </div>
+                            </div>
+                            <div style="width: 50px; height: 4px; background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden;">
+                                {% if cat.score != 'N/A' %}
+                                    <div style="height: 100%; width: {{ cat.score }}%; background: {% if cat.score|int >= 90 %}#10b981{% elif cat.score|int >= 70 %}#f59e0b{% else %}#ef4444{% endif %};"></div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <!-- Section 2: Key Findings -->
+            <h3 class="mb-4" style="color: #fff; font-size: 1.25rem; font-weight: 700; border-left: 3px solid var(--accent); padding-left: 0.75rem;">Key Security Findings</h3>
+            <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2.5rem;">
+                {% set findings_displayed = namespace(any=false) %}
+                
+                {% for sev, color, bg, icon in [
+                    ('Critical', '#ef4444', 'rgba(239, 68, 68, 0.1)', '🛑'),
+                    ('High', '#f43f5e', 'rgba(244, 63, 94, 0.1)', '⚠️'),
+                    ('Medium', '#f59e0b', 'rgba(245, 158, 11, 0.1)', '🔸'),
+                    ('Low', '#3b82f6', 'rgba(59, 130, 246, 0.1)', '🔹')
+                ] %}
+                    {% set sev_findings = [] %}
+                    {% for cat_key, cat in result.categories.items() %}
+                        {% for finding in cat.findings %}
+                            {% if finding.severity == sev %}
+                                {% set _ = sev_findings.append(finding) %}
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+                    
+                    {% if sev_findings %}
+                        {% set findings_displayed.any = true %}
+                        <div style="background: rgba(30, 41, 59, 0.2); border: 1px solid rgba(255, 255, 255, 0.04); border-radius: 0.75rem; padding: 1.25rem;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05); padding-bottom: 0.5rem;">
+                                <span style="font-size: 1.2rem; line-height: 1;">{{ icon }}</span>
+                                <span style="font-weight: 700; font-size: 0.95rem; text-transform: uppercase; color: {{ color }}; letter-spacing: 0.5px;">{{ sev }} Findings ({{ sev_findings | length }})</span>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                                {% for f in sev_findings %}
+                                    <div style="display: flex; align-items: flex-start; gap: 0.75rem; background: rgba(15, 23, 42, 0.2); padding: 0.75rem 1rem; border-radius: 0.5rem; border-left: 3px solid {{ color }};">
+                                        <span class="badge" style="font-size: 0.7rem; font-weight: 700; background: {{ bg }}; color: {{ color }}; text-transform: uppercase; min-width: 60px; text-align: center;">{{ sev }}</span>
+                                        <div style="font-size: 0.9rem; color: #cbd5e1; line-height: 1.4;">
+                                            {{ f.message }}
+                                            {% if f.deduction > 0 %}
+                                                <span style="color: #f87171; font-weight: 600; font-size: 0.85rem; margin-left: 0.5rem;">[-{{ f.deduction }}]</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if not findings_displayed.any %}
+                    <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 0.75rem; padding: 1.25rem; text-align: center; color: #6ee7b7; font-size: 0.95rem;">
+                        🎉 No vulnerabilities or compliance findings detected. All systems operating with standard baseline settings.
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Section 3: Recommendations -->
+            <h3 class="mb-4" style="color: #fff; font-size: 1.25rem; font-weight: 700; border-left: 3px solid var(--accent); padding-left: 0.75rem;">Top Security Recommendations</h3>
+            <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2.5rem;">
+                {% set rec_count = namespace(value=0) %}
+                {% for key, cat in result.categories.items() %}
+                    {% for finding in cat.findings %}
+                        {% if finding.severity in ['Critical', 'High', 'Medium', 'Low'] and rec_count.value < 5 %}
+                            {% set rec_count.value = rec_count.value + 1 %}
+                            {% set priority = finding.severity %}
+                            {% set desc = finding.message %}
+                            
+                            <!-- Assign custom detail values for the SOC look -->
+                            {% if 'SSL' in desc or 'certificate' in desc %}
+                                {% set why = "An invalid or expired SSL certificate prevents secure connections and triggers browser warnings." %}
+                                {% set imp = "Encrypts traffic, prevents eavesdropping, and restores browser trust." %}
+                            {% elif 'DNS' in desc or 'resolve' in desc %}
+                                {% set why = "Without valid DNS resolution, clients cannot establish any network connection to your server." %}
+                                {% set imp = "Enables domain resolution and restores website accessibility." %}
+                            {% elif 'Content-Security-Policy' in desc or 'CSP' in desc %}
+                                {% if 'report-only' in desc.lower() %}
+                                    {% set why = "CSP in report-only mode reports violations but does not actively block them." %}
+                                    {% set imp = "Actively blocks XSS and unauthorized data injection attacks." %}
+                                {% else %}
+                                    {% set why = "CSP is the primary defense against Cross-Site Scripting (XSS) and data injection." %}
+                                    {% set imp = "Enforces strict script and resource execution, mitigating XSS." %}
+                                {% endif %}
+                            {% elif 'Strict-Transport-Security' in desc or 'HSTS' in desc %}
+                                {% set why = "HSTS prevents protocol downgrade attacks and cookie hijacking by forcing HTTPS." %}
+                                {% set imp = "Enforces browser-side SSL/TLS validation and mitigates MITM risks." %}
+                            {% elif 'X-Frame-Options' in desc or 'clickjacking' in desc %}
+                                {% set why = "Without clickjacking protection, attackers can embed your page inside invisible frames to steal clicks." %}
+                                {% set imp = "Restricts frame embedding to self or authorized domains, preventing UI redressing." %}
+                            {% elif 'X-Content-Type-Options' in desc or 'sniffing' in desc %}
+                                {% set why = "MIME sniffing allows browsers to execute files as scripts regardless of content type." %}
+                                {% set imp = "Enforces declared content types, preventing MIME sniffing attacks." %}
+                            {% elif 'Cookie' in desc %}
+                                {% set why = "Insecure cookies can be leaked over unencrypted HTTP or accessed by malicious JavaScript." %}
+                                {% set imp = "Secures user sessions and prevents script-based credential theft." %}
+                            {% elif 'Server' in desc or 'version' in desc %}
+                                {% set why = "Exposing exact web server software versions helps attackers identify target exploits." %}
+                                {% set imp = "Hides version info, making automated scanning and targeted attacks harder." %}
+                            {% else %}
+                                {% set why = "Implementing modern security headers hardens client-side defense-in-depth." %}
+                                {% set imp = "Reduces client-side attack surface and cross-origin exposure." %}
+                            {% endif %}
+                            
+                            <div style="background: rgba(30, 41, 59, 0.3); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 0.75rem; padding: 1.25rem; display: grid; grid-template-columns: 100px 1fr; gap: 1rem; align-items: start;">
+                                <div>
+                                    <span class="badge {% if priority == 'Critical' %}danger{% elif priority == 'High' %}danger{% elif priority == 'Medium' %}warning{% else %}success{% endif %}" style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; width: 80px; text-align: center;">{{ priority }}</span>
+                                    <div style="font-size: 0.7rem; color: var(--text-secondary); text-align: center; margin-top: 0.5rem; text-transform: uppercase;">Priority {{ rec_count.value }}</div>
+                                </div>
+                                <div style="font-size: 0.9rem;">
+                                    <div style="font-weight: 700; color: #fff; margin-bottom: 0.5rem;">Action: Implement remediation for "{{ desc }}"</div>
+                                    <div style="color: #cbd5e1; margin-bottom: 0.5rem;"><strong>Why it matters:</strong> {{ why }}</div>
+                                    <div style="color: #6ee7b7; font-weight: 500;"><strong>Expected Security Improvement:</strong> {{ imp }}</div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                {% endfor %}
+                
+                {% if rec_count.value == 0 %}
+                    <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 0.75rem; padding: 1.25rem; text-align: center; color: #6ee7b7; font-size: 0.95rem;">
+                        No remediation actions required. The system configuration is optimized.
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Section 4: Technical Analysis -->
+            <h3 class="mb-4" style="color: #fff; font-size: 1.25rem; font-weight: 700; border-left: 3px solid var(--accent); padding-left: 0.75rem;">Technical Analysis</h3>
+            <div style="margin-bottom: 2.5rem;">
+                
+                <!-- DNS Analysis -->
+                <details class="soc-card">
+                    <summary class="soc-summary">
+                        <span>🌐 DNS Analysis</span>
+                        <span style="font-size: 0.9rem; font-weight: normal; color: var(--text-secondary); margin-right: 1.5rem;">
+                            Score: {{ result.categories.dns.score }} | Status: {{ result.categories.dns.status }}
+                        </span>
+                    </summary>
+                    <div class="soc-content">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                            <div>
+                                <h5 style="margin-top: 0; color: var(--text-secondary); text-transform: uppercase; font-size: 0.8rem;">Findings</h5>
+                                <ul style="list-style: none; padding: 0; margin: 0;">
+                                    {% for f in result.categories.dns.findings %}
+                                        <li style="margin-bottom: 0.5rem; font-size: 0.9rem; color: #e2e8f0;">• {{ f.message }}</li>
+                                    {% else %}
+                                        <li style="color: #10b981; font-size: 0.9rem;">✔ No DNS health issues detected.</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            <div>
+                                <h5 style="margin-top: 0; color: var(--text-secondary); text-transform: uppercase; font-size: 0.8rem;">Recommendations</h5>
+                                <ul style="padding-left: 1.2rem; margin: 0; color: #e2e8f0; font-size: 0.9rem;">
+                                    {% for r in result.categories.dns.recommendations %}
+                                        <li>{{ r }}</li>
+                                    {% else %}
+                                        <li>Maintain current DNS configuration.</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+
+                <!-- SSL/TLS Analysis -->
+                <details class="soc-card">
+                    <summary class="soc-summary">
+                        <span>🛡 SSL/TLS Analysis</span>
+                        <span style="font-size: 0.9rem; font-weight: normal; color: var(--text-secondary); margin-right: 1.5rem;">
+                            Score: {{ result.categories.ssl.score }} | Status: {{ result.categories.ssl.status }}
+                        </span>
+                    </summary>
+                    <div class="soc-content">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                            <div>
+                                <h5 style="margin-top: 0; color: var(--text-secondary); text-transform: uppercase; font-size: 0.8rem;">Certificate details</h5>
+                                <table class="data-table" style="font-size: 0.85rem; margin-top: 0.5rem;">
+                                    <tr><th>Valid</th><td>{{ 'Yes' if result.ssl.valid else 'No' }}</td></tr>
+                                    <tr><th>TLS Version</th><td>{{ result.ssl.tls_version }}</td></tr>
+                                    <tr><th>Subject</th><td style="word-break: break-all;">{{ result.ssl.subject }}</td></tr>
+                                    <tr><th>Issuer</th><td style="word-break: break-all;">{{ result.ssl.issuer }}</td></tr>
+                                    <tr><th>Expiration</th><td>{{ result.ssl.expiration }}</td></tr>
+                                    <tr><th>Days Remaining</th><td>{% if result.ssl.days_remaining != 'N/A' %}{{ result.ssl.days_remaining }}{% else %}N/A{% endif %}</td></tr>
+                                </table>
+                            </div>
+                            <div>
+                                <h5 style="margin-top: 0; color: var(--text-secondary); text-transform: uppercase; font-size: 0.8rem;">Findings & Recommendations</h5>
+                                <ul style="list-style: none; padding: 0; margin: 0 0 1rem 0;">
+                                    {% for f in result.categories.ssl.findings %}
+                                        <li style="margin-bottom: 0.5rem; font-size: 0.9rem; color: #fca5a5;">• {{ f.message }}</li>
+                                    {% else %}
+                                        <li style="color: #10b981; font-size: 0.9rem; margin-bottom: 0.5rem;">✔ SSL certificate is valid and trusted.</li>
+                                    {% endfor %}
+                                </ul>
+                                <h5 style="margin-top: 0; color: var(--text-secondary); text-transform: uppercase; font-size: 0.8rem;">Remediation</h5>
+                                <ul style="padding-left: 1.2rem; margin: 0; color: #e2e8f0; font-size: 0.9rem;">
+                                    {% for r in result.categories.ssl.recommendations %}
+                                        <li>{{ r }}</li>
+                                    {% else %}
+                                        <li>No remediation required.</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+
+                <!-- HTTP Security Headers -->
+                <details class="soc-card">
+                    <summary class="soc-summary">
+                        <span>⚙ HTTP Security Headers</span>
+                        <span style="font-size: 0.9rem; font-weight: normal; color: var(--text-secondary); margin-right: 1.5rem;">
+                            Score: {{ result.categories.headers.score }} | Status: {{ result.categories.headers.status }}
+                        </span>
+                    </summary>
+                    <div class="soc-content">
+                        
+                        <!-- Section 7: Header Summary Block -->
+                        <div style="background: rgba(15, 23, 42, 0.4); padding: 1.25rem; border-radius: 0.5rem; margin-bottom: 1.5rem; display: flex; justify-content: space-around; flex-wrap: wrap; text-align: center; gap: 1rem; border: 1px solid rgba(255,255,255,0.05);">
+                            <div>
+                                <div style="font-size: 1.3rem; font-weight: bold; color: #fff;">{{ result.header_summary.checked }}</div>
+                                <div style="font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; margin-top: 0.25rem;">Checked</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 1.3rem; font-weight: bold; color: #10b981;">{{ result.header_summary.present }}</div>
+                                <div style="font-size: 0.7rem; color: #6ee7b7; text-transform: uppercase; margin-top: 0.25rem;">Present</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 1.3rem; font-weight: bold; color: #f59e0b;">{{ result.header_summary.report_only }}</div>
+                                <div style="font-size: 0.7rem; color: #fcd34d; text-transform: uppercase; margin-top: 0.25rem;">Report Only</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 1.3rem; font-weight: bold; color: #ef4444;">{{ result.header_summary.missing }}</div>
+                                <div style="font-size: 0.7rem; color: #fca5a5; text-transform: uppercase; margin-top: 0.25rem;">Missing</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 1.3rem; font-weight: bold; color: #94a3b8;">{{ result.header_summary.not_tested }}</div>
+                                <div style="font-size: 0.7rem; color: #cbd5e1; text-transform: uppercase; margin-top: 0.25rem;">Not Evaluated</div>
+                            </div>
+                        </div>
+
+                        <!-- Stacked Horizontal Bar Visualization -->
+                        {% set total_h = result.header_summary.checked %}
+                        {% if total_h > 0 %}
+                            {% set p_width = (result.header_summary.present / total_h * 100) | round %}
+                            {% set ro_width = (result.header_summary.report_only / total_h * 100) | round %}
+                            {% set m_width = (result.header_summary.missing / total_h * 100) | round %}
+                            {% set ne_width = (result.header_summary.not_tested / total_h * 100) | round %}
+                            <div style="height: 12px; background: rgba(255,255,255,0.05); border-radius: 6px; display: flex; overflow: hidden; margin-bottom: 2rem;">
+                                <div style="width: {{ p_width }}%; background: #10b981;" class="tooltip-container">
+                                    <span class="tooltip-text">Present: {{ result.header_summary.present }} headers ({{ p_width }}%)</span>
+                                </div>
+                                <div style="width: {{ ro_width }}%; background: #f59e0b;" class="tooltip-container">
+                                    <span class="tooltip-text">Report Only: {{ result.header_summary.report_only }} headers ({{ ro_width }}%)</span>
+                                </div>
+                                <div style="width: {{ m_width }}%; background: #ef4444;" class="tooltip-container">
+                                    <span class="tooltip-text">Missing: {{ result.header_summary.missing }} headers ({{ m_width }}%)</span>
+                                </div>
+                                <div style="width: {{ ne_width }}%; background: #64748b;" class="tooltip-container">
+                                    <span class="tooltip-text">Not Evaluated: {{ result.header_summary.not_tested }} headers ({{ ne_width }}%)</span>
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                            {% for header, h_info in result.security_headers.items() %}
+                                <div style="background: rgba(15, 23, 42, 0.2); border: 1px solid rgba(255,255,255,0.03); padding: 1rem; border-radius: 0.5rem; display: grid; grid-template-columns: 200px 120px 1fr; gap: 1rem; align-items: center;">
+                                    <div class="tooltip-container">
+                                        <strong style="color: #fff; font-family: monospace;">{{ header }}</strong>
+                                        <span class="tooltip-text">
+                                            {% if header == 'Strict-Transport-Security' %}Enforces HTTPS connections to protect against MITM and downgrade attacks.
+                                            {% elif header == 'Content-Security-Policy' %}Mitigates XSS and data injection attacks by restricting content source locations.
+                                            {% elif header == 'X-Frame-Options' %}Prevents clickjacking UI redressing attacks.
+                                            {% elif header == 'X-Content-Type-Options' %}Blocks MIME-type sniffing to prevent executing assets as executable scripts.
+                                            {% elif header == 'Referrer-Policy' %}Controls referrer info leaked in outbound HTTP request headers.
+                                            {% elif header == 'Permissions-Policy' %}Restricts client-side browser features and API access.
+                                            {% elif header == 'Cross-Origin-Opener-Policy' %}Isolates execution context to protect against cross-window attacks.
+                                            {% elif header == 'Cross-Origin-Resource-Policy' %}Limits cross-origin loading of resource files.
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        {% if h_info.status == 'Present' %}
+                                            <span class="badge success" style="font-size: 0.75rem; width: 100px; text-align: center;">Present</span>
+                                        {% elif h_info.status == 'Report Only' %}
+                                            <span class="badge warning" style="font-size: 0.75rem; width: 100px; text-align: center;">Report Only</span>
+                                        {% elif h_info.status == 'Not Observed' %}
+                                            <span class="badge warning" style="font-size: 0.75rem; width: 100px; text-align: center; background: rgba(245, 158, 11, 0.1); color: #f59e0b;">Not Observed</span>
+                                        {% elif h_info.status in ['Not Evaluated', 'Not Tested'] %}
+                                            <span class="badge secondary" style="font-size: 0.75rem; width: 100px; text-align: center; background: rgba(148, 163, 184, 0.1); color: #94a3b8;">Not Evaluated</span>
+                                        {% else %}
+                                            <span class="badge danger" style="font-size: 0.75rem; width: 100px; text-align: center;">Missing</span>
+                                        {% endif %}
+                                    </div>
+                                    <div style="font-size: 0.85rem; color: #cbd5e1;">
+                                        {% if h_info.status == 'Present' %}
+                                            <span style="font-family: monospace; word-break: break-all; color: #a7f3d0;">{{ h_info.value }}</span>
+                                        {% elif h_info.status == 'Report Only' %}
+                                            <div style="color: var(--warning); margin-bottom: 0.25rem;">{{ h_info.reason }}</div>
+                                            <span style="font-family: monospace; word-break: break-all; color: #cbd5e1;">{{ h_info.value }}</span>
+                                        {% else %}
+                                            <span style="color: #94a3b8;">{{ h_info.reason }}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </details>
+
+                <!-- Cookies Analysis -->
+                <details class="soc-card">
+                    <summary class="soc-summary">
+                        <span>🍪 Cookies Analysis</span>
+                        <span style="font-size: 0.9rem; font-weight: normal; color: var(--text-secondary); margin-right: 1.5rem;">
+                            Cookies Detected: {{ result.cookies | length }}
+                        </span>
+                    </summary>
+                    <div class="soc-content">
+                        {% if result.cookies %}
+                            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                                {% for cookie in result.cookies %}
+                                    <div style="background: rgba(15, 23, 42, 0.2); border: 1px solid rgba(255,255,255,0.03); padding: 1rem; border-radius: 0.5rem; display: grid; grid-template-columns: 2fr 2fr 3fr; gap: 1rem; align-items: center;">
+                                        <div>
+                                            <strong style="color: #fff; font-family: monospace; font-size: 0.95rem;">{{ cookie.name }}</strong>
+                                            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">Domain: {{ cookie.domain or 'N/A' }} | Path: {{ cookie.path or '/' }}</div>
+                                        </div>
+                                        <div style="display: flex; gap: 0.5rem;">
+                                            <span class="badge {% if cookie.http_only %}success{% else %}danger{% endif %}" style="font-size: 0.7rem; min-width: 80px; text-align: center;">
+                                                HttpOnly: {{ 'Yes' if cookie.http_only else 'No' }}
+                                            </span>
+                                            <span class="badge {% if cookie.secure %}success{% else %}danger{% endif %}" style="font-size: 0.7rem; min-width: 80px; text-align: center;">
+                                                Secure: {{ 'Yes' if cookie.secure else 'No' }}
+                                            </span>
+                                        </div>
+                                        <div style="font-size: 0.8rem; color: #cbd5e1;">
+                                            <div><strong>SameSite:</strong> {{ cookie.same_site }}</div>
+                                            <div style="margin-top: 0.25rem;"><strong>Expires:</strong> {{ cookie.expires or 'Session' }}</div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div style="color: var(--text-secondary); font-size: 0.9rem; text-align: center;">No cookies were set by the target response.</div>
+                        {% endif %}
+                    </div>
+                </details>
+
+                <!-- Server Configuration -->
+                <details class="soc-card">
+                    <summary class="soc-summary">
+                        <span>⚙ Server Configuration</span>
+                        <span style="font-size: 0.9rem; font-weight: normal; color: var(--text-secondary); margin-right: 1.5rem;">
+                            Score: {{ result.categories.server.score }} | Status: {{ result.categories.server.status }}
+                        </span>
+                    </summary>
+                    <div class="soc-content">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                            <div>
+                                <h5 style="margin-top: 0; color: var(--text-secondary); text-transform: uppercase; font-size: 0.8rem;">Signature Information</h5>
+                                <table class="data-table" style="font-size: 0.85rem; margin-top: 0.5rem;">
+                                    <tr><th>Server Header</th><td>{{ result.server }}</td></tr>
+                                    <tr><th>Compression Active</th><td>{{ 'Enabled' if result.compression_used else 'Disabled' }}</td></tr>
+                                    <tr><th>Encoding Type</th><td>{{ result.content_encoding }}</td></tr>
+                                </table>
+                            </div>
+                            <div>
+                                <h5 style="margin-top: 0; color: var(--text-secondary); text-transform: uppercase; font-size: 0.8rem;">Findings</h5>
+                                <ul style="list-style: none; padding: 0; margin: 0;">
+                                    {% for f in result.categories.server.findings %}
+                                        <li style="margin-bottom: 0.5rem; font-size: 0.9rem; color: #cbd5e1;">
+                                            <span class="badge {% if f.severity in ['Critical', 'High'] %}danger{% else %}warning{% endif %}" style="font-size: 0.65rem; padding: 0.1rem 0.3rem;">{{ f.severity }}</span>
+                                            {{ f.message }}
+                                        </li>
+                                    {% else %}
+                                        <li style="color: #10b981; font-size: 0.9rem;">✔ No server disclosure findings detected.</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+
+                <!-- Performance -->
+                <details class="soc-card">
+                    <summary class="soc-summary">
+                        <span>⚡ Performance Analysis</span>
+                        <span style="font-size: 0.9rem; font-weight: normal; color: var(--text-secondary); margin-right: 1.5rem;">
+                            Score: {{ result.categories.performance.score }} | Status: {{ result.categories.performance.status }}
+                        </span>
+                    </summary>
+                    <div class="soc-content">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                            <div>
+                                <h5 style="margin-top: 0; color: var(--text-secondary); text-transform: uppercase; font-size: 0.8rem;">Timing Metrics</h5>
+                                <div style="background: rgba(15, 23, 42, 0.4); padding: 1.25rem; border-radius: 0.5rem; text-align: center; border: 1px solid rgba(255,255,255,0.05); margin-top: 0.5rem;">
+                                    <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 0.25rem;">Response Time</div>
+                                    <div style="font-size: 2.2rem; font-weight: bold; color: #fff;">{{ result.response_time_ms }}<span style="font-size: 1rem; font-weight: normal; color: var(--text-secondary);"> ms</span></div>
+                                </div>
+                            </div>
+                            <div>
+                                <h5 style="margin-top: 0; color: var(--text-secondary); text-transform: uppercase; font-size: 0.8rem;">Analysis Findings</h5>
+                                <ul style="list-style: none; padding: 0; margin: 0;">
+                                    {% for f in result.categories.performance.findings %}
+                                        <li style="margin-bottom: 0.5rem; font-size: 0.9rem; color: #cbd5e1;">• {{ f.message }}</li>
+                                    {% else %}
+                                        <li style="color: #10b981; font-size: 0.9rem;">✔ Latency falls within target security benchmark guidelines.</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+            </div>
+
+            <!-- Section 5: Advanced Technical Data -->
+            <details class="soc-card" style="margin-bottom: 3rem; background: rgba(30, 41, 59, 0.2); border-color: rgba(255,255,255,0.03);">
+                <summary class="soc-summary" style="font-size: 1.1rem; color: #cbd5e1;">
+                    <span>📊 Advanced Technical Data</span>
+                    <span style="font-size: 0.85rem; font-weight: normal; color: var(--text-secondary); margin-right: 1.5rem;">Collapse / Expand raw telemetry</span>
+                </summary>
+                <div class="soc-content" style="background: rgba(15, 23, 42, 0.3);">
+                    
+                    <!-- Response Chain -->
+                    {% if result.response_chain %}
+                    <h5 style="margin-top: 0; margin-bottom: 0.75rem; color: var(--text-secondary); text-transform: uppercase; font-size: 0.8rem;">HTTP Response Redirect Chain</h5>
+                    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-bottom: 2rem; background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 0.5rem;">
+                        {% for hop in result.response_chain %}
+                            <div style="background: rgba(15, 23, 42, 0.4); padding: 0.4rem 0.6rem; border-radius: 0.25rem; display: flex; align-items: center; gap: 0.5rem; font-family: monospace; font-size: 0.8rem;">
+                                <span class="badge {% if hop.status_code == 'Unreachable' or hop.status_code|int >= 400 %}danger{% elif hop.status_code|int >= 300 and hop.status_code|int < 400 %}warning{% else %}success{% endif %}" style="font-size: 0.7rem; padding: 0.1rem 0.3rem;">{{ hop.status_code }}</span>
+                                <span style="color: #e2e8f0;">{{ hop.url }}</span>
+                            </div>
+                            {% if not loop.last %}
+                                <span style="color: var(--text-secondary); font-size: 0.75rem;">➔</span>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Raw Response Headers -->
+                    <h5 style="margin-top: 0; margin-bottom: 0.75rem; color: var(--text-secondary); text-transform: uppercase; font-size: 0.8rem;">Raw Response Headers</h5>
+                    <div style="max-height: 250px; overflow-y: auto; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05); border-radius: 0.5rem; padding: 1rem; font-family: monospace; font-size: 0.8rem; color: #cbd5e1; line-height: 1.5; margin-bottom: 2rem;">
+                        {% for k, v in result.raw_headers.items() %}
+                            <div style="margin-bottom: 0.4rem; word-break: break-all;">
+                                <strong style="color: var(--accent);">{{ k }}:</strong> {{ v }}
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Certificate Details -->
+                    <h5 style="margin-top: 0; margin-bottom: 0.75rem; color: var(--text-secondary); text-transform: uppercase; font-size: 0.8rem;">Raw SSL Certificate Telemetry</h5>
+                    <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05); border-radius: 0.5rem; padding: 1rem; font-family: monospace; font-size: 0.8rem; color: #cbd5e1; line-height: 1.5; margin-bottom: 2rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                        <div><strong>Valid:</strong> {{ result.ssl.valid }}</div>
+                        <div><strong>Subject:</strong> {{ result.ssl.subject }}</div>
+                        <div><strong>Issuer:</strong> {{ result.ssl.issuer }}</div>
+                        <div><strong>Expiration:</strong> {{ result.ssl.expiration }}</div>
+                        <div><strong>Days Remaining:</strong> {{ result.ssl.days_remaining }}</div>
+                        <div><strong>SAN Domains:</strong> {% if result.ssl.san %}{{ result.ssl.san | join(', ') }}{% else %}N/A{% endif %}</div>
+                        {% if result.ssl.error %}
+                            <div style="color: #ef4444;"><strong>Error:</strong> {{ result.ssl.error }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Raw Data Inspector -->
+                    <h5 style="margin-top: 0; margin-bottom: 0.75rem; color: var(--text-secondary); text-transform: uppercase; font-size: 0.8rem;">Raw Data Inspector</h5>
+                    <table class="data-table" style="font-size: 0.85rem; margin-bottom: 2rem;">
+                        <tr><th>Final Resolved URL</th><td>{{ result.final_url }}</td></tr>
+                        <tr><th>IP Address</th><td>{{ result.ip_address }}</td></tr>
+                        <tr><th>Status Code</th><td>{{ result.status_code }}</td></tr>
+                        <tr><th>Response Time</th><td>{{ result.response_time_ms }} ms</td></tr>
+                        <tr><th>Server Header</th><td>{{ result.server }}</td></tr>
+                        <tr><th>TLS Version</th><td>{{ result.ssl.tls_version }}</td></tr>
+                        <tr><th>SSL Expiration Date</th><td>{{ result.ssl.expiration }}</td></tr>
+                        <tr><th>SAN Domains</th><td>{% if result.ssl.san %}{{ result.ssl.san | join(', ') }}{% else %}N/A{% endif %}</td></tr>
+                    </table>
+
+                    <!-- Scoring Formula Breakdown -->
+                    <h5 style="margin-top: 0; margin-bottom: 0.75rem; color: var(--text-secondary); text-transform: uppercase; font-size: 0.8rem;">Weighted Scoring Formula Breakdown</h5>
+                    <div style="background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); padding: 1.25rem; border-radius: 0.5rem; font-family: monospace; font-size: 0.85rem; color: #cbd5e1;">
+                        <ul style="list-style: none; padding: 0; margin: 0 0 1rem 0; line-height: 1.6;">
+                            {% for step in result.scoring_breakdown %}
+                                <li style="margin-bottom: 0.4rem;">• {{ step }}</li>
+                            {% endfor %}
+                        </ul>
+                        <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 0.75rem; font-weight: bold; color: #fff;">
+                            Normalized Risk Score = {{ result.risk_score }} / 100
+                        </div>
+                    </div>
+
+                </div>
+            </details>
+
+            <!-- Section 9: SOC Footer -->
+            <div style="border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 1.5rem; display: flex; justify-content: space-between; align-items: center; color: var(--text-secondary); font-size: 0.75rem; margin-top: 3rem;">
+                <div>Scanner Engine: v1.4.2</div>
+                <div>Last Updated: 2026-07-08</div>
+                <div style="font-weight: 600; letter-spacing: 0.5px;">Powered by CyberOptimus</div>
+            </div>
+
+        </div>
+    {% else %}
+        <div class="card result-card high-risk" style="border: 1px solid rgba(255, 255, 255, 0.08); background: rgba(15, 23, 42, 0.3);">
+            <h2 style="color: #ef4444;">Scan Failed</h2>
+            <p style="color: var(--danger);">{{ result.message }}</p>
+        </div>
+    {% endif %}
+{% endif %}
+
+<script>
+document.getElementById('scanner-form').addEventListener('submit', function() {
+    document.getElementById('scan-btn').disabled = true;
+    document.getElementById('scan-btn').innerText = 'Scanning...';
+    document.getElementById('scan-progress').style.display = 'block';
+    
+    let step = 1;
+    const interval = setInterval(() => {
+        const currentItem = document.getElementById('step' + step);
+        if (currentItem) {
+            currentItem.innerHTML = '✅ ' + currentItem.innerText.substring(2);
+            currentItem.style.color = '#10b981';
+        }
+        
+        step++;
+        const nextItem = document.getElementById('step' + step);
+        if (nextItem) {
+            nextItem.style.opacity = '1';
+        } else {
+            clearInterval(interval);
+        }
+    }, 600);
+});
+</script>
+{% endblock %}
