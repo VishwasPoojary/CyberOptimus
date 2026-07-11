@@ -1,99 +1,68 @@
-# 🛡️ CyberOptimus
+# CyberOptimus
 
-### Cybersecurity Assessment Platform
+CyberOptimus is a cybersecurity web application built using Python and Flask. It provides multiple tools for website security scanning, password analysis, phishing detection, file analysis, scan history, and downloadable security reports.
 
-CyberOptimus is a modern cybersecurity web application built with **Python** and **Flask**. It helps users analyze website security, evaluate password strength, detect phishing attempts, inspect files, and generate professional security reports through an intuitive dashboard.
+## Features
 
----
+### Website Security Scanner
+- DNS health analysis
+- SSL/TLS certificate inspection
+- TLS version detection
+- HTTP security header analysis
+- Redirect tracking
+- Cookie security analysis
+- Server information detection
+- Performance analysis
+- Severity-based findings
+- Security score and grade
+- PDF report generation
 
-## ✨ Features
+### Password Security Analyzer
+- Password strength score
+- Entropy calculation
+- Common-password detection
+- Dictionary and pattern analysis
+- Estimated attack method
+- Offline crack-time estimates
+- Risk factors and recommendations
+- Secure password generator
+- Copy-to-clipboard support
+- Local analysis without storing passwords
 
-### 🌐 Website Security Scanner
-- DNS Health Analysis
-- SSL/TLS Certificate Validation
-- TLS Version Detection
-- HTTP Security Header Analysis
-- Cookie Security Analysis
-- Server Configuration Analysis
-- Redirect Tracking
-- Performance Analysis
-- Security Score & Grade
-- Severity-based Risk Assessment
-- Professional PDF Report Generation
+### Phishing Detector
+- Suspicious URL analysis
+- Lookalike-domain detection
+- Character-substitution detection
+- DNS and SSL checks
+- Risk score and threat level
+- Security recommendations
 
----
+### File Analyzer
+- File type identification
+- Hash generation
+- Basic suspicious-file indicators
+- File metadata analysis
 
-### 🔐 Password Security Analyzer
-- Password Strength Score
-- Entropy Calculation
-- Common Password Detection
-- Dictionary Attack Detection
-- Attack Method Prediction
-- Offline Crack Time Estimation
-- Password Security Recommendations
-- Secure Password Generator
-- Password Privacy Protection (No Storage)
+### Additional Features
+- Security dashboard
+- Scan history
+- Severity summaries
+- Downloadable PDF reports
+- Responsive dark-themed interface
 
----
+## Tech Stack
 
-### 🎣 Phishing Detector
-- URL Risk Analysis
-- Suspicious Domain Detection
-- Lookalike Domain Detection
-- Homograph Attack Detection
-- SSL & DNS Verification
-- Threat Level Assessment
-- Security Recommendations
-
----
-
-### 📁 File Analyzer
-- File Type Detection
-- File Hash Generation
-- Metadata Extraction
-- Suspicious File Identification
-- Security Risk Assessment
-
----
-
-### 📊 Dashboard
-- Professional Security Dashboard
-- Risk Summary
-- Severity Statistics
-- Scan History
-- Interactive Reports
-
----
-
-## 🛠️ Tech Stack
-
-**Backend**
 - Python
 - Flask
-
-**Frontend**
-- HTML5
-- CSS3
+- HTML
+- CSS
 - JavaScript
-
-**Database**
 - SQLite
 
-**Libraries**
-- Requests
-- Cryptography
-- BeautifulSoup
-- dnspython
-- ReportLab
-- And other Python packages listed in `requirements.txt`
-
----
-
-## 📂 Project Structure
+## Project Structure
 
 ```text
 CyberOptimus/
-│
 ├── app/
 │   ├── models/
 │   ├── reports/
@@ -104,121 +73,8 @@ CyberOptimus/
 │   ├── static/
 │   ├── templates/
 │   └── utils/
-│
 ├── docs/
-├── requirements.txt
 ├── config.py
+├── requirements.txt
 ├── run.py
 └── README.md
-```
-
----
-
-## 🚀 Installation
-
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/VishwasPoojary/CyberOptimus.git
-cd CyberOptimus
-```
-
-### 2. Create a Virtual Environment
-
-```bash
-python3 -m venv venv
-```
-
-### 3. Activate the Virtual Environment
-
-#### Linux / Ubuntu
-
-```bash
-source venv/bin/activate
-```
-
-#### Windows
-
-```cmd
-venv\Scripts\activate
-```
-
-### 4. Install Required Packages
-
-```bash
-pip install -r requirements.txt
-```
-
-### 5. Run the Application
-
-```bash
-python3 run.py
-```
-
-Open your browser and visit:
-
-```
-http://127.0.0.1:5000
-```
-
----
-
-## 🔒 Security & Privacy
-
-CyberOptimus is designed with security in mind.
-
-- Passwords are analyzed locally and are **never stored**.
-- Generated passwords are **not saved**.
-- Sensitive files such as `.env`, databases, and virtual environments are excluded from Git using `.gitignore`.
-- This project is intended for **authorized security assessment and educational purposes only**.
-
----
-
-## 📸 Screenshots
-
-Add screenshots here after uploading them.
-
-Example:
-
-```markdown
-![Dashboard](docs/screenshots/dashboard.png)
-
-![Website Scanner](docs/screenshots/website_scanner.png)
-
-![Password Analyzer](docs/screenshots/password_analyzer.png)
-
-![Phishing Detector](docs/screenshots/phishing_detector.png)
-
-![File Analyzer](docs/screenshots/file_analyzer.png)
-```
-
----
-
-## 🎯 Future Enhancements
-
-- Threat Intelligence Integration
-- VirusTotal Integration
-- WHOIS & Domain Age Lookup
-- Advanced Malware Analysis
-- AI-powered Security Recommendations
-- Scan History Export
-- User Authentication
-- Cloud Deployment
-
----
-
-## 📜 License
-
-This project is licensed under the **MIT License**.
-
----
-
-## 👨‍💻 Author
-
-**Vishwas Poojary**
-
-GitHub: https://github.com/VishwasPoojary
-
----
-
-⭐ If you found this project useful, consider giving it a **Star** on GitHub.
