@@ -1,70 +1,87 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CyberOptimus - Enterprise Cybersecurity Assessment Platform</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <style>
-        .hero {
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            background: radial-gradient(circle at center, #1E293B 0%, #0B0F19 100%);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .hero::before {
-            content: '';
-            position: absolute;
-            width: 600px;
-            height: 600px;
-            background: var(--accent);
-            filter: blur(150px);
-            opacity: 0.15;
-            border-radius: 50%;
-            z-index: 0;
-        }
+{% extends "base.html" %}
 
-        .hero-content {
-            z-index: 1;
-            max-width: 800px;
-            padding: 2rem;
-        }
+{% block title %}CyberOptimus | Web Security Assessment Platform{% endblock %}
+{% block page_title %}Overview & Quick Launch{% endblock %}
+{% block page_subtitle %}A web-based security reconnaissance and configuration assessment platform.{% endblock %}
 
-        .hero h1 {
-            font-size: 4rem;
-            margin-bottom: 1rem;
-            background: linear-gradient(135deg, #fff, #94A3B8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
+{% block content %}
 
-        .hero p {
-            font-size: 1.25rem;
-            color: var(--text-secondary);
-            margin-bottom: 2.5rem;
-        }
-        
-        .btn-large {
-            padding: 1rem 2.5rem;
-            font-size: 1.1rem;
-        }
-    </style>
-</head>
-<body>
-
-<section class="hero">
-    <div class="hero-content glass">
-        <h1>CyberOptimus</h1>
-        <p>Enterprise Cybersecurity Assessment Platform.</p>
-        <a href="{{ url_for('main.dashboard') }}" class="btn btn-large">Launch Dashboard</a>
+<!-- HERO BANNER -->
+<div class="card mb-4" style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.7)); border: 1px solid var(--border-accent); padding: 2.5rem; position: relative;">
+    <div style="max-width: 650px;">
+        <span class="badge info" style="margin-bottom: 0.75rem;">Web Security & Reconnaissance Platform</span>
+        <h2 style="font-size: 2rem; margin-bottom: 0.75rem; background: linear-gradient(135deg, #ffffff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+            CyberOptimus Platform
+        </h2>
+        <p style="color: var(--text-secondary); font-size: 1rem; margin-bottom: 1.5rem; line-height: 1.6;">
+            CyberOptimus provides automated passive web security assessment, header inspection, SSL/TLS certificate validation, DNS health telemetry, phishing URL analysis, password entropy calculation, and binary file auditing.
+        </p>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+            <a href="{{ url_for('scanner.website_scanner') }}" class="btn">
+                <span>Start Website Scan</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </a>
+            <a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary">
+                <span>Open Dashboard</span>
+            </a>
+        </div>
     </div>
-</section>
+</div>
 
-</body>
-</html>
+<!-- TOOLS GRID -->
+<h3 style="margin-bottom: 1.25rem; font-size: 1.15rem;">Core Reconnaissance Tools</h3>
+<div class="grid-2" style="margin-bottom: 2.5rem;">
+    <div class="card" style="display: flex; gap: 1.25rem; align-items: flex-start;">
+        <div style="background: rgba(59, 130, 246, 0.1); padding: 1rem; border-radius: 0.75rem; color: var(--accent); font-size: 1.75rem; border: 1px solid rgba(59, 130, 246, 0.2);">
+            🌐
+        </div>
+        <div style="flex: 1;">
+            <h4 style="font-size: 1.1rem; margin-bottom: 0.35rem;">Website Security Scanner</h4>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                Passively analyzes HTTPS configurations, Strict-Transport-Security, Content-Security-Policy directives, Cookie prefixes (`__Secure-`, `__Host-`), SPF/DMARC DNS records, and redirect chains.
+            </p>
+            <a href="{{ url_for('scanner.website_scanner') }}" class="btn btn-secondary" style="padding: 0.4rem 0.85rem; font-size: 0.8rem;">Launch Scanner →</a>
+        </div>
+    </div>
+
+    <div class="card" style="display: flex; gap: 1.25rem; align-items: flex-start;">
+        <div style="background: rgba(245, 158, 11, 0.1); padding: 1rem; border-radius: 0.75rem; color: var(--warning); font-size: 1.75rem; border: 1px solid rgba(245, 158, 11, 0.2);">
+            🎣
+        </div>
+        <div style="flex: 1;">
+            <h4 style="font-size: 1.1rem; margin-bottom: 0.35rem;">Phishing Detector</h4>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                Detects raw IP hosts, suspicious domain structures, brand typosquatting, unencrypted HTTP links, and credential harvest path patterns.
+            </p>
+            <a href="{{ url_for('scanner.phishing_detector') }}" class="btn btn-secondary" style="padding: 0.4rem 0.85rem; font-size: 0.8rem;">Analyze URL →</a>
+        </div>
+    </div>
+
+    <div class="card" style="display: flex; gap: 1.25rem; align-items: flex-start;">
+        <div style="background: rgba(16, 185, 129, 0.1); padding: 1rem; border-radius: 0.75rem; color: var(--success); font-size: 1.75rem; border: 1px solid rgba(16, 185, 129, 0.2);">
+            🔑
+        </div>
+        <div style="flex: 1;">
+            <h4 style="font-size: 1.1rem; margin-bottom: 0.35rem;">Password Checker</h4>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                Calculates mathematical entropy, character composition diversity, common dictionary matches, and brute-force time estimates without storing passwords.
+            </p>
+            <a href="{{ url_for('scanner.password_checker') }}" class="btn btn-secondary" style="padding: 0.4rem 0.85rem; font-size: 0.8rem;">Test Password →</a>
+        </div>
+    </div>
+
+    <div class="card" style="display: flex; gap: 1.25rem; align-items: flex-start;">
+        <div style="background: rgba(6, 182, 212, 0.1); padding: 1rem; border-radius: 0.75rem; color: var(--accent-cyan); font-size: 1.75rem; border: 1px solid rgba(6, 182, 212, 0.2);">
+            📁
+        </div>
+        <div style="flex: 1;">
+            <h4 style="font-size: 1.1rem; margin-bottom: 0.35rem;">File Security Analyzer</h4>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                Generates SHA-256 and MD5 cryptographic hashes, inspects binary magic headers via `libmagic`, and flags double extensions or suspicious executables.
+            </p>
+            <a href="{{ url_for('scanner.file_scanner') }}" class="btn btn-secondary" style="padding: 0.4rem 0.85rem; font-size: 0.8rem;">Inspect File →</a>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

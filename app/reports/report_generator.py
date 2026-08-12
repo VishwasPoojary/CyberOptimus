@@ -26,12 +26,32 @@ class ReportGenerator:
         risk_score = 0
         if total_scans > 0:
             risk_score = min(int((threats_found / total_scans) * 100), 100)
+
+        # Compute average score across website scans
+        website_scans = [s for s in scans if s.scan_type == 'website']
+        scores = []
+        high_risk_count = 0
+        low_risk_count = 0
+
+        for s in website_scans:
+            score = (s.result_data or {}).get('risk_score')
+            if isinstance(score, (int, float)):
+                scores.append(score)
+                if score >= 80:
+                    low_risk_count += 1
+                elif score < 60:
+                    high_risk_count += 1
+
+        avg_score = round(sum(scores) / len(scores), 1) if scores else 0
             
         return {
             "total_scans": total_scans,
             "threats_found": threats_found,
             "secure_sites": secure_sites,
-            "risk_score": f"{risk_score}%"
+            "risk_score": f"{risk_score}%",
+            "avg_score": avg_score,
+            "high_risk_count": high_risk_count,
+            "low_risk_count": low_risk_count
         }
 
     def generate_analytics(self) -> dict:

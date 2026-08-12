@@ -39,8 +39,31 @@ class PDFGenerator:
         elements.append(Spacer(1, 12))
         
         # Summary
-        elements.append(Paragraph(f"Target URL: {data.get('url')}", self.heading_style))
-        elements.append(Paragraph(f"Overall Grade: {data.get('grade')} (Score: {data.get('risk_score')})", self.custom_normal))
+        orig_url = data.get('original_url') or data.get('url')
+        orig_host = data.get('original_host') or data.get('resolved_hostname') or data.get('domain')
+        orig_ip = data.get('original_ip') or data.get('ip_address', 'N/A')
+        fin_url = data.get('final_url') or data.get('url')
+        fin_host = data.get('final_host') or data.get('final_domain') or orig_host
+        fin_ip = data.get('final_ip') or orig_ip
+        
+        elements.append(Paragraph(f"Reconnaissance Target: {orig_host}", self.heading_style))
+        elements.append(Paragraph(f"<b>Original Target:</b> {orig_url} (Host: {orig_host} | IP: {orig_ip})", self.custom_normal))
+        elements.append(Paragraph(f"<b>Final Endpoint:</b> {fin_url} (Host: {fin_host} | IP: {fin_ip})", self.custom_normal))
+        
+        # Redirect Intelligence Block in PDF
+        intel = data.get('redirect_intel', {})
+        if intel:
+            elements.append(Paragraph(f"<b>Redirect Classification:</b> {intel.get('classification', 'N/A')} [{intel.get('status', 'N/A')}]", self.heading_style))
+            elements.append(Paragraph(f"<b>Risk Rationale:</b> {intel.get('rationale', 'N/A')}", self.custom_normal))
+            
+        # Hop Chain in PDF
+        chain = data.get('response_chain', [])
+        if chain:
+            chain_str = " ➔ ".join([f"[{hop.get('status_code')}] {hop.get('url')} ({hop.get('ip', 'N/A')})" for hop in chain])
+            elements.append(Paragraph(f"<b>Redirect Hop Chain:</b> {chain_str}", self.custom_normal))
+            
+        elements.append(Spacer(1, 12))
+        elements.append(Paragraph(f"<b>Overall Grade:</b> {data.get('grade')} (Score: {data.get('risk_score')})", self.custom_normal))
         if data.get('score_explanation'):
             elements.append(Paragraph(f"Score Explanation: {data.get('score_explanation')}", self.custom_normal))
         
@@ -63,12 +86,22 @@ class PDFGenerator:
                 
         elements.append(Spacer(1, 12))
         
-        # Categories
+        # Performance Observations (Decoupled)
+        perf_obs = data.get('performance_observations', {})
+        if perf_obs:
+            elements.append(Paragraph("<b>Performance Observations (Telemetry Only - Excluded from Security Score):</b>", self.normal_style))
+            elements.append(Paragraph(f"HTTP Response Time: {perf_obs.get('response_time_ms')} ms | DNS Lookup: {perf_obs.get('dns_lookup')} ms | TCP Connect: {perf_obs.get('tcp_connect')} ms | TLS Handshake: {perf_obs.get('tls_handshake')} ms | Total Duration: {perf_obs.get('total_scan_duration')} ms", self.custom_normal))
+
+        elements.append(Spacer(1, 12))
+        
+        # Security Categories
         categories = data.get('categories', {})
-        for cat_key, cat_name in [("dns", "DNS Health"), ("ssl", "SSL/TLS Security"), 
-                                  ("headers", "HTTP Security Headers"), 
-                                  ("server", "Server Configuration"), 
-                                  ("performance", "Performance")]:
+        for cat_key, cat_name in [("headers", "HTTP Security Headers (25%)"),
+                                  ("ssl", "SSL/TLS Security (25%)"), 
+                                  ("redirects", "Redirect Intelligence (20%)"),
+                                  ("dns", "DNS Health (15%)"), 
+                                  ("cookies", "Cookie Security (10%)"),
+                                  ("server", "Server Configuration (5%)")]:
             cat_data = categories.get(cat_key)
             if not cat_data:
                 continue
@@ -78,23 +111,37 @@ class PDFGenerator:
             elements.append(Paragraph(f"{cat_name} - Score: {score_text}{status_text}", self.heading_style))
             
             # Findings
-            elements.append(Paragraph("Findings:", self.normal_style))
+            elements.append(Paragraph("Findings & Evidence:", self.normal_style))
             findings = cat_data.get('findings', [])
             if findings:
                 for f in findings:
-                    deduct_str = f" (-{f['deduction']})" if f['deduction'] > 0 else ""
-                    msg = f"• [{f['severity']}] {f['message']}{deduct_str}"
+                    deduct_str = f" (-{f['deduction']} pts)" if f.get('deduction', 0) > 0 else ""
+                    conf_str = f" [{f.get('confidence', 'Verified')}]"
+                    msg = f"• [{f['severity']}]{conf_str} {f['message']}{deduct_str}"
                     if f['severity'] in ['Critical', 'High']:
                         elements.append(Paragraph(msg, self.error_style))
                     else:
                         elements.append(Paragraph(msg, self.custom_normal))
+                    if f.get('evidence'):
+                        elements.append(Paragraph(f"  <i>Evidence:</i> {f['evidence']}", self.custom_normal))
             else:
-                elements.append(Paragraph("• [Info] No security issues detected.", self.success_style))
-                    
-            # Recommendations
-            elements.append(Paragraph("Recommendations:", self.normal_style))
-            for rec in cat_data['recommendations']:
-                elements.append(Paragraph(f"• {rec}", self.custom_normal))
+                elements.append(Paragraph("No findings reported.", self.custom_normal))
+                
+            elements.append(Spacer(1, 6))
+            recs = cat_data.get('recommendations', [])
+            if recs:
+                elements.append(Paragraph("Recommendations:", self.normal_style))
+                for rec in recs:
+                    if isinstance(rec, dict):
+                        rec_text = f"<b>{rec.get('title', 'Recommendation')}</b><br/>" \
+                                   f"• <b>Why it matters:</b> {rec.get('why_it_matters', 'N/A')}<br/>" \
+                                   f"• <b>Risk:</b> {rec.get('risk', 'N/A')}<br/>" \
+                                   f"• <b>OWASP Reference:</b> {rec.get('owasp_ref', 'N/A')}<br/>" \
+                                   f"• <b>Example:</b> {rec.get('example', 'N/A')}<br/>" \
+                                   f"• <b>Expected Impact:</b> {rec.get('impact', 'N/A')}"
+                        elements.append(Paragraph(rec_text, self.custom_normal))
+                    else:
+                        elements.append(Paragraph(f"• {rec}", self.custom_normal))
                 
             elements.append(Spacer(1, 12))
             
@@ -113,6 +160,30 @@ class PDFGenerator:
             elements.append(Paragraph(f"<b>SAN Domains:</b> {', '.join(san_list) if san_list else 'None'}", self.custom_normal))
             if ssl_info.get('error'):
                 elements.append(Paragraph(f"<b>SSL/TLS Error:</b> {ssl_info.get('error')}", self.error_style))
+            elements.append(Spacer(1, 12))
+
+        # Performance timing metrics section
+        timings = data.get('timings', {})
+        if timings:
+            elements.append(Paragraph("Performance Timing Metrics", self.heading_style))
+            elements.append(Paragraph(f"<b>DNS Lookup:</b> {timings.get('dns_lookup', 0.0)} ms", self.custom_normal))
+            elements.append(Paragraph(f"<b>TCP Connection:</b> {timings.get('tcp_connect', 0.0)} ms", self.custom_normal))
+            elements.append(Paragraph(f"<b>TLS Handshake:</b> {timings.get('tls_handshake', 0.0)} ms", self.custom_normal))
+            elements.append(Paragraph(f"<b>Time to First Byte (TTFB):</b> {timings.get('ttfb', 0.0)} ms", self.custom_normal))
+            elements.append(Paragraph(f"<b>Download Time:</b> {timings.get('download_time', 0.0)} ms", self.custom_normal))
+            elements.append(Paragraph(f"<b>Total Response Time:</b> {timings.get('total_time', 0.0)} ms", self.custom_normal))
+            elements.append(Spacer(1, 12))
+
+        # Edge Intelligence Section
+        elements.append(Paragraph("Edge Infrastructure & Security Intelligence", self.heading_style))
+        elements.append(Paragraph(f"<b>CDN / Proxy / WAF Provider:</b> {data.get('cdn_provider', 'Direct / Unknown')}", self.custom_normal))
+        elements.append(Paragraph(f"<b>HTTP Protocol Version:</b> {data.get('http_protocol', 'HTTP/1.1')}", self.custom_normal))
+        elements.append(Paragraph(f"<b>IPv6 Support:</b> {'Available' if data.get('ipv6_supported') else 'IPv4 Only'}", self.custom_normal))
+        elements.append(Paragraph(f"<b>OCSP Stapling Status:</b> {'Stapled' if ssl_info.get('ocsp_stapled') else 'Not Stapled'}", self.custom_normal))
+        elements.append(Paragraph(f"<b>TLS Cipher Suite:</b> {ssl_info.get('cipher_suite', 'N/A')}", self.custom_normal))
+        elements.append(Paragraph(f"<b>Certificate Transparency (CT):</b> {'Present (SCT list verified)' if ssl_info.get('sct_present') else 'Not Verified'}", self.custom_normal))
+        elements.append(Spacer(1, 12))
+
         # Cookies Section in PDF
         cookies = data.get('cookies', [])
         if cookies:

@@ -1,82 +1,86 @@
 {% extends "base.html" %}
 
-{% block title %}Scan History | CyberOptimus{% endblock %}
-{% block page_title %}Scan History{% endblock %}
-{% block page_subtitle %}Review and analyze previous website security assessments.{% endblock %}
+{% block title %}Scan History | CyberOptimus Security Platform{% endblock %}
+{% block page_title %}Security Telemetry & Scan History{% endblock %}
+{% block page_subtitle %}Audit log of past website security reconnaissance reports.{% endblock %}
 
 {% block content %}
-<div class="card" style="margin-bottom: 2rem;">
-    <form method="GET" action="{{ url_for('main.scan_history') }}" style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 1rem; align-items: end;">
-        <div class="form-group" style="margin: 0;">
-            <label for="query">Search Website</label>
-            <input type="text" id="query" name="query" placeholder="e.g. google.com" value="{{ query }}">
+
+<!-- FILTER TOOLBAR -->
+<div class="card mb-4">
+    <form method="GET" action="{{ url_for('main.scan_history') }}" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
+        <div style="flex: 2; min-width: 200px;">
+            <label for="query">Search Target Domain</label>
+            <input type="text" id="query" name="query" value="{{ query }}" placeholder="e.g. google.com">
         </div>
-        <div class="form-group" style="margin: 0;">
-            <label for="grade">Filter by Grade</label>
-            <select id="grade" name="grade" style="width: 100%; padding: 0.75rem; border-radius: 0.5rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff;">
-                <option value="">All Grades</option>
-                <option value="A" {% if grade == 'A' %}selected{% endif %}>Grade A</option>
-                <option value="B" {% if grade == 'B' %}selected{% endif %}>Grade B</option>
-                <option value="C" {% if grade == 'C' %}selected{% endif %}>Grade C</option>
-                <option value="D" {% if grade == 'D' %}selected{% endif %}>Grade D</option>
-                <option value="F" {% if grade == 'F' %}selected{% endif %}>Grade F</option>
-            </select>
+        <div style="flex: 1; min-width: 130px;">
+            <label for="grade">Grade Filter</label>
+            <input type="text" id="grade" name="grade" value="{{ grade }}" placeholder="e.g. A, B, F">
         </div>
-        <div class="form-group" style="margin: 0;">
-            <label for="date">Filter by Date</label>
-            <input type="date" id="date" name="date" value="{{ date_filter }}" style="width: 100%; padding: 0.75rem; border-radius: 0.5rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff;">
+        <div style="flex: 1; min-width: 140px;">
+            <label for="date">Scan Date</label>
+            <input type="text" id="date" name="date" value="{{ date_filter }}" placeholder="YYYY-MM-DD">
         </div>
-        <button type="submit" class="btn" style="padding: 0.75rem 1.5rem;">Filter</button>
+        <div style="display: flex; gap: 0.5rem;">
+            <button type="submit" class="btn">Filter</button>
+            <a href="{{ url_for('main.scan_history') }}" class="btn btn-secondary">Reset</a>
+        </div>
     </form>
 </div>
 
-<div class="card">
+<!-- HISTORY TABLE -->
+<div class="card mb-4">
     {% if scans %}
         <table class="data-table">
             <thead>
                 <tr>
-                    <th>Website</th>
-                    <th>Scan Date & Time</th>
+                    <th>Scan ID</th>
+                    <th>Target Domain</th>
+                    <th>Date & Time (UTC)</th>
+                    <th>Security Score</th>
                     <th>Grade</th>
-                    <th>Risk Score</th>
                     <th>Threat Level</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for scan in scans %}
-                <tr>
-                    <td style="font-weight: 500;">{{ scan.target }}</td>
-                    <td style="color: var(--text-secondary);">{{ scan.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-                    <td>
-                        <span class="badge {% if scan.grade in ['A', 'B'] %}success{% elif scan.grade == 'C' %}warning{% else %}danger{% endif %}">
-                            Grade {{ scan.grade }}
-                        </span>
-                    </td>
-                    <td>{{ scan.risk_score }} / 100</td>
-                    <td>
-                        <span class="badge" style="background: {% if scan.threat_level == 'Low' %}rgba(16,185,129,0.2){% elif scan.threat_level == 'Medium' %}rgba(245,158,11,0.2){% elif scan.threat_level == 'High' %}rgba(239,68,68,0.2){% else %}rgba(220,38,38,0.4){% endif %}; color: #fff;">
-                            {{ scan.threat_level }}
-                        </span>
-                    </td>
-                    <td>
-                        <div style="display: flex; gap: 0.5rem;">
-                            <a href="{{ url_for('scanner.website_scanner', scan_id=scan.id) }}" class="btn btn-secondary" style="padding: 0.25rem 0.75rem; font-size: 0.85rem;">View Report</a>
-                            <a href="{{ url_for('scanner.download_website_report', scan_id=scan.id) }}" class="btn btn-secondary" style="padding: 0.25rem 0.75rem; font-size: 0.85rem; background: rgba(255,255,255,0.05);">PDF</a>
-                        </div>
-                    </td>
-                </tr>
+                    <tr>
+                        <td style="color: var(--text-muted); font-family: monospace;">#{{ scan.id }}</td>
+                        <td style="font-weight: 600; font-family: monospace;">{{ scan.target }}</td>
+                        <td style="color: var(--text-muted); font-size: 0.85rem;">{{ scan.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        <td>
+                            {% if scan.risk_score != 'N/A' %}
+                                <span style="font-weight: bold; color: {% if scan.risk_score >= 80 %}#10B981{% elif scan.risk_score >= 60 %}#F59E0B{% else %}#EF4444{% endif %};">
+                                    {{ scan.risk_score }}/100
+                                </span>
+                            {% else %}
+                                <span style="color: var(--text-muted);">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge {% if scan.grade in ['A+', 'A'] %}success{% elif scan.grade in ['B', 'C'] %}warning{% else %}danger{% endif %}">
+                                {{ scan.grade }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge {% if scan.threat_level == 'Low' %}success{% elif scan.threat_level in ['Medium', 'High'] %}warning{% else %}danger{% endif %}">
+                                {{ scan.threat_level }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('scanner.website_scanner', scan_id=scan.id) }}" style="font-size: 0.825rem; margin-right: 0.75rem;">View Report</a>
+                            <a href="{{ url_for('scanner.download_website_report', scan_id=scan.id) }}" style="font-size: 0.825rem; color: var(--accent-cyan);">PDF Export</a>
+                        </td>
+                    </tr>
                 {% endfor %}
             </tbody>
         </table>
     {% else %}
-        <div style="text-align: center; padding: 3rem; color: var(--text-secondary);">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 1rem; opacity: 0.5;">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="8" y1="12" x2="16" y2="12"></line>
-            </svg>
-            <p>No matching scans found in history.</p>
+        <div style="text-align: center; padding: 2.5rem; color: var(--text-secondary); font-size: 0.925rem;">
+            No scan history records matched the active filter criteria.
         </div>
     {% endif %}
 </div>
+
 {% endblock %}

@@ -1,153 +1,141 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard | CyberOptimus{% endblock %}
-{% block page_title %}Security Dashboard{% endblock %}
-{% block page_subtitle %}Real-time cyber risk monitoring center.{% endblock %}
+{% block title %}Dashboard | CyberOptimus Security Platform{% endblock %}
+{% block page_title %}Security Command Dashboard{% endblock %}
+{% block page_subtitle %}Real-time web security assessment telemetry and threat analytics.{% endblock %}
 
 {% block content %}
 
+<!-- METRICS ROW -->
 <div class="grid-4">
     <div class="card stat-card">
-        <h3>Total Scans</h3>
-        <p class="value">{{ stats.total_scans }}</p>
+        <h3>Total Security Scans</h3>
+        <div class="value">{{ stats.get('total_scans', 0) }}</div>
+        <div class="sub-value">Across all 4 security modules</div>
     </div>
     
     <div class="card stat-card">
-        <h3>Threats Found</h3>
-        <p class="value" style="color: var(--danger);">{{ stats.threats_found }}</p>
+        {% set avg_sc = stats.get('avg_score', 0) %}
+        <h3>Average Security Score</h3>
+        <div class="value" style="color: {% if avg_sc >= 80 %}#10B981{% elif avg_sc >= 60 %}#F59E0B{% else %}#EF4444{% endif %};">
+            {{ avg_sc }}/100
+        </div>
+        <div class="sub-value">Overall posture average</div>
     </div>
-    
+
     <div class="card stat-card">
-        <h3>Secure Sites</h3>
-        <p class="value" style="color: var(--success);">{{ stats.secure_sites }}</p>
+        <h3>High-Priority Threats</h3>
+        <div class="value" style="color: #EF4444;">{{ stats.get('high_risk_count', 0) }}</div>
+        <div class="sub-value">Critical / High severity findings</div>
     </div>
-    
+
     <div class="card stat-card">
-        <h3>Risk Score</h3>
-        <p class="value" style="color: var(--warning);">{{ stats.risk_score }}</p>
+        <h3>Hardened Hosts</h3>
+        <div class="value" style="color: #10B981;">{{ stats.get('low_risk_count', 0) }}</div>
+        <div class="sub-value">Grade A / B security posture</div>
     </div>
 </div>
 
-<div class="grid-2">
-    <div class="card">
-        <h2 class="mb-4">Quick Actions</h2>
-        <div style="display: flex; flex-direction: column; gap: 1rem;">
-            <a href="{{ url_for('scanner.website_scanner') }}" class="btn btn-secondary" style="justify-content: flex-start;">🔍 Scan Website</a>
-            <a href="{{ url_for('scanner.phishing_detector') }}" class="btn btn-secondary" style="justify-content: flex-start;">🎣 Detect Phishing</a>
-            <a href="{{ url_for('scanner.password_checker') }}" class="btn btn-secondary" style="justify-content: flex-start;">🔑 Check Password</a>
-            <a href="{{ url_for('scanner.file_scanner') }}" class="btn btn-secondary" style="justify-content: flex-start;">📁 Analyze File</a>
+<!-- TOOLS GRID -->
+<h3 style="margin-bottom: 1.25rem; font-size: 1.15rem;">Security Assessment Modules</h3>
+<div class="grid-4" style="margin-bottom: 2.5rem;">
+    <a href="{{ url_for('scanner.website_scanner') }}" class="card" style="display: flex; flex-direction: column; gap: 0.75rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+            <span style="font-size: 1.5rem;">🌐</span>
+            <span class="badge info">Web Security</span>
         </div>
+        <h4 style="margin: 0; font-size: 1.1rem;">Website Scanner</h4>
+        <p style="font-size: 0.825rem; color: var(--text-secondary); margin: 0;">Analyze HTTP headers, TLS/SSL certificates, DNS SPF/DMARC, cookies, and redirects.</p>
+    </a>
+
+    <a href="{{ url_for('scanner.password_checker') }}" class="card" style="display: flex; flex-direction: column; gap: 0.75rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+            <span style="font-size: 1.5rem;">🔑</span>
+            <span class="badge success">Identity</span>
+        </div>
+        <h4 style="margin: 0; font-size: 1.1rem;">Password Checker</h4>
+        <p style="font-size: 0.825rem; color: var(--text-secondary); margin: 0;">Calculate password entropy, common dictionary matching, and crack time difficulty.</p>
+    </a>
+
+    <a href="{{ url_for('scanner.phishing_detector') }}" class="card" style="display: flex; flex-direction: column; gap: 0.75rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+            <span style="font-size: 1.5rem;">🎣</span>
+            <span class="badge warning">Threat Intel</span>
+        </div>
+        <h4 style="margin: 0; font-size: 1.1rem;">Phishing Detector</h4>
+        <p style="font-size: 0.825rem; color: var(--text-secondary); margin: 0;">Identify suspicious URLs, raw IP hosts, typosquatting brands, and credential traps.</p>
+    </a>
+
+    <a href="{{ url_for('scanner.file_scanner') }}" class="card" style="display: flex; flex-direction: column; gap: 0.75rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+            <span style="font-size: 1.5rem;">📁</span>
+            <span class="badge secondary">File Safety</span>
+        </div>
+        <h4 style="margin: 0; font-size: 1.1rem;">File Analyzer</h4>
+        <p style="font-size: 0.825rem; color: var(--text-secondary); margin: 0;">Generate SHA-256 hashes, inspect binary magic headers, and detect double extensions.</p>
+    </a>
+</div>
+
+<!-- RECENT SCANS TABLE -->
+<div class="card mb-4">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h3 style="margin: 0; font-size: 1.15rem;">Recent Security Telemetry</h3>
+        <a href="{{ url_for('main.scan_history') }}" class="btn btn-secondary" style="padding: 0.4rem 0.85rem; font-size: 0.8rem;">View Full History</a>
     </div>
-    
-    <div class="card">
-        <h2 class="mb-4">Recent Activity</h2>
-        {% if recent_scans %}
-            <table class="data-table" style="font-size: 0.9rem;">
+
+    {% if recent_scans %}
+        <table class="data-table">
+            <thead>
                 <tr>
-                    <th>Type</th>
-                    <th>Target</th>
-                    <th>Time</th>
-                 </tr>
-                {% for scan in recent_scans %}
-                <tr>
-                    <td><span class="badge" style="background: rgba(255,255,255,0.1)">{{ scan.scan_type | capitalize }}</span></td>
-                    <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><a href="{{ url_for('scanner.website_scanner', scan_id=scan.id) if scan.scan_type == 'website' else '#' }}" style="color: inherit; text-decoration: none;">{{ scan.target }}</a></td>
-                    <td style="color: var(--text-secondary);">{{ scan.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <th>Target Endpoint</th>
+                    <th>Scan Type</th>
+                    <th>Timestamp (UTC)</th>
+                    <th>Security Score</th>
+                    <th>Grade</th>
+                    <th>Actions</th>
                 </tr>
+            </thead>
+            <tbody>
+                {% for scan in recent_scans %}
+                    <tr>
+                        <td style="font-weight: 600; font-family: monospace;">{{ scan.target }}</td>
+                        <td>
+                            <span class="badge secondary" style="text-transform: uppercase; font-size: 0.7rem;">{{ scan.scan_type }}</span>
+                        </td>
+                        <td style="color: var(--text-muted); font-size: 0.85rem;">{{ scan.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            {% set score = scan.result_data.get('risk_score') or scan.result_data.get('score') %}
+                            {% if score is not none and score != 'N/A' %}
+                                <span style="font-weight: bold; color: {% if score >= 80 %}#10B981{% elif score >= 60 %}#F59E0B{% else %}#EF4444{% endif %};">
+                                    {{ score }}/100
+                                </span>
+                            {% else %}
+                                <span style="color: var(--text-muted);">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% set g = scan.result_data.get('grade', 'N/A') %}
+                            <span class="badge {% if g in ['A+', 'A'] %}success{% elif g in ['B', 'C'] %}warning{% else %}danger{% endif %}">
+                                {{ g }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if scan.scan_type == 'website' %}
+                                <a href="{{ url_for('scanner.website_scanner', scan_id=scan.id) }}" style="font-size: 0.825rem; margin-right: 0.75rem;">View Analysis</a>
+                                <a href="{{ url_for('scanner.download_website_report', scan_id=scan.id) }}" style="font-size: 0.825rem; color: var(--accent-cyan);">PDF Report</a>
+                            {% else %}
+                                <span style="font-size: 0.825rem; color: var(--text-muted);">Completed</span>
+                            {% endif %}
+                        </td>
+                    </tr>
                 {% endfor %}
-            </table>
-        {% else %}
-            <div class="text-center" style="color: var(--text-secondary); padding: 2rem;">
-                No scans performed yet.
-            </div>
-        {% endif %}
-    </div>
+            </tbody>
+        </table>
+    {% else %}
+        <div style="text-align: center; padding: 2rem; color: var(--text-secondary); font-size: 0.9rem;">
+            No security scans executed yet. Use the Website Scanner or Security Tools above to begin.
+        </div>
+    {% endif %}
 </div>
 
-<div class="grid-2" style="margin-top: 2rem;">
-    <div class="card">
-        <h3 style="margin-bottom: 1.5rem;">Scans Over Time (Last 7 Days)</h3>
-        <canvas id="scansTimeChart" style="max-height: 250px;"></canvas>
-    </div>
-    <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
-        <div>
-            <h3 style="margin-bottom: 1.5rem;">Threat Distribution</h3>
-            <div style="height: 180px; position: relative;">
-                <canvas id="threatDistributionChart"></canvas>
-            </div>
-        </div>
-        <div style="text-align: center; margin-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1rem;">
-            <span style="font-size: 0.9rem; color: var(--text-secondary);">Average Security Score:</span>
-            <strong style="font-size: 1.5rem; color: var(--accent); margin-left: 0.5rem;">{{ analytics.avg_security_score }} / 100</strong>
-        </div>
-    </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-    const scansCtx = document.getElementById('scansTimeChart').getContext('2d');
-    new Chart(scansCtx, {
-        type: 'line',
-        data: {
-            labels: {{ analytics.scans_over_time_labels | tojson }},
-            datasets: [{
-                label: 'Scans',
-                data: {{ analytics.scans_over_time_data | tojson }},
-                borderColor: '#6366f1',
-                backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                tension: 0.4,
-                fill: true,
-                borderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                    ticks: { color: '#94a3b8', stepSize: 1 }
-                },
-                x: {
-                    grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                    ticks: { color: '#94a3b8' }
-                }
-            }
-        }
-    });
-
-    const threatCtx = document.getElementById('threatDistributionChart').getContext('2d');
-    new Chart(threatCtx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Low', 'Medium', 'High', 'Critical'],
-            datasets: [{
-                data: [
-                    {{ analytics.threat_distribution.Low }},
-                    {{ analytics.threat_distribution.Medium }},
-                    {{ analytics.threat_distribution.High }},
-                    {{ analytics.threat_distribution.Critical }}
-                ],
-                backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#dc2626'],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'right',
-                    labels: { color: '#e2e8f0', boxWidth: 12 }
-                }
-            }
-        }
-    });
-});
-</script>
 {% endblock %}
